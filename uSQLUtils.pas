@@ -9,7 +9,7 @@ uses
 type
   TSQLHelper = class(TAdoQuery)
   public
-    constructor Create(aDatabase: string);
+    constructor Create(aDatabaseName: string);
     destructor Destroy; override;
 
     procedure Open(aSql: string); overload;
@@ -24,12 +24,12 @@ implementation
 
 { TSQLHelper }
 
-constructor TSQLHelper.Create(aDatabase: string);
+constructor TSQLHelper.Create(aDatabaseName: string);
 begin
   inherited Create(nil);
-  FDatabaseName := aDatabase;
+  FDatabaseName := aDatabaseName;
   FSQLDataModule := TSqlDataModule.Create(nil);
-  FSQLDataModule.Connect(aDatabase);
+  FSQLDataModule.Connect(aDatabaseName);
   Connection := FSQLDataModule.AdoSqlConnection;
 end;
 
