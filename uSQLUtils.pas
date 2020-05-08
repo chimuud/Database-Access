@@ -16,7 +16,7 @@ type
     function SaveToExcel(IncludeHeader: Boolean): string;
   private
     FDatabaseName: string;
-    FSQLDataModule: TSqlDataModule;
+    FSQLDataModule: TSqlDatabase;
   end;
 
 implementation
@@ -29,7 +29,8 @@ begin
   inherited Create(nil);
   FDatabaseName := aDatabaseName;
   FSQLDataModule := TSqlDataModule.Create(nil);
-  FSQLDataModule.Connect(aDatabaseName);
+  FSQLDataModule.Connect(aDa
+  tabaseName);
   Connection := FSQLDataModule.AdoSqlConnection;
 end;
 

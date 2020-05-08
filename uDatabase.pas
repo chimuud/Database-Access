@@ -6,13 +6,12 @@ uses
   System.SysUtils, System.Classes, Data.DB, Data.Win.ADODB;
 
 type
-  TSqlDataModule = class(TDataModule)
+  TSQLDatabase = class
     AdoSqlConnection: TADOConnection;
-    procedure DataModuleCreate(Sender: TObject);
-    procedure DataModuleDestroy(Sender: TObject);
+    constructor Create(Server: string = ''; UserName: string = ''; Password: string = '');
+    destructor Destroy; override;
   public
-    procedure Connect(DatabaseName: string;
-      UserName: string = ''; Password: string = '');
+    class function Connect(DatabaseName: string; Server: string = ''; UserName: string = ''; Password: string = ''): TADOConnection;
   private
     FServerName: string;
     FUserName: string;
@@ -20,7 +19,7 @@ type
   end;
 
 var
-  SqlDataModule: TSqlDataModule;
+  SQLDatabase: TSQLDatabase;
 
 implementation
 
@@ -29,62 +28,89 @@ implementation
 {$R *.dfm}
 
 uses
-  IniFiles;
+  IniFiles, VCL.Dialogs;
 
-procedure TSqlDataModule.Connect(DatabaseName: string;
-  UserName: string = ''; Password: string = '');
+constructor TSQLDatabase.Create(Server: string = ''; UserName: string = ''; Password: string = '');
+var
+  ini: TIniFile;
+begin
+  ini := TIniFile.Create(ChangeFileExt(ParamStr(0), '.ini'));
+  if Server <> '' then
+    FServerName := Server
+  else
+    FServerName := ini.ReadString('Database', 'Server', 'DESKTOP-5U1LDH5\sqlexpress');
+
+  if UserName <> '' then
+    FUserName := UserName
+  else
+    FUserName := ini.ReadString('Database', 'UserName', 'sa');
+
+  if Password <> '' then
+    FPassword := Password
+  else
+    FPassword := ini.ReadString('Database', 'Password', 'Password');
+end;
+
+destructor TSQLDatabase.Destroy;
+begin
+  AdoSqlConnection.Connected := False;
+end;
+
+class function TSQLDatabase.Connect(DatabaseName: string; Server: string = ''; UserName: string = ''; Password: string = ''): TADOConnection;
+
+  function GetIniFile(ident: string; section: string = 'Database'): string;
+  var
+    ini: TIniFile;
+  begin
+    try
+      ini := TIniFile.Create(ChangeFileExt(ParamStr(0), '.ini'));
+      Result := ini.ReadString(section, ident, '');
+    finally
+      ini.Free;
+    end;
+  end;
+
 var
   connStr: string;
 begin
-  if FServerName = '' then Exit;
+  Result := TADOConnection.Create(nil);
+
+  if DataBaseName = '' then
+  begin
+    ShowMessage('Database name is not defined');
+    Exit;
+  end;
 
   connStr := 'Provider=MSOLEDBSQL.1;';
-  if UserName <> '' then
-    connStr :=  connStr + 'Password=' + Password + ';'
-  else
-    connStr :=  connStr + 'Password=' + FPassword + ';';
 
+  if Server = '' then
+    Server := GetIniFile('Server');
+
+  if UserName = '' then
+    UserName := GetIniFile('UserName');
+
+  if Password = '' then
+    Password := GetIniFile('Password');
+
+  connStr :=  connStr + 'Password=' + Password + ';';
   connStr :=  connStr + 'Persist Security Info=True;';
-
-  if UserName <> '' then
-    connStr :=  connStr + 'User ID=' + UserName + ';'
-  else
-    connStr :=  connStr + 'User ID=' + FUserName + ';';
-
-  if DataBaseName <> '' then
-    connStr :=  connStr + 'Initial Catalog=' + DataBaseName + ';';
-
+  connStr :=  connStr + 'User ID=' + UserName + ';';
+  connStr :=  connStr + 'Initial Catalog=' + DataBaseName + ';';
   connStr :=  connStr +
-    'Data Source=' + FServerName + ';' + //DESKTOP-5U1LDH5\sqlexpress;
+    'Data Source=' + Server + ';' + //DESKTOP-5U1LDH5\sqlexpress;
     'Initial File Name="";' +
     'Server SPN="";' +
     'Authentication=""';// +
 //    'Access Token=""';
-  AdoSqlConnection.Connected := False;
-  AdoSqlConnection.ConnectionString := connStr;
+  Result.Connected := False;
+  Result.ConnectionString := connStr;
   try
-    AdoSqlConnection.Connected := True;
+    Result.Connected := True;
   except
     on e: Exception do
       raise Exception.Create(e.Message);
   end;
 end;
 
-{ TSqlDataModule }
-
-procedure TSqlDataModule.DataModuleCreate(Sender: TObject);
-var
-  ini: TIniFile;
-begin
-  ini := TIniFile.Create(ChangeFileExt(ParamStr(0), '.ini'));
-  FServerName := ini.ReadString('Database', 'Server', 'DESKTOP-5U1LDH5\sqlexpress');
-  FUserName := ini.ReadString('Database', 'UserName', 'sa');
-  FPassword := ini.ReadString('Database', 'Password', 'BatJaki123');
-end;
-
-procedure TSqlDataModule.DataModuleDestroy(Sender: TObject);
-begin
-  AdoSqlConnection.Connected := False;
-end;
 
 end.
